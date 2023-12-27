@@ -1,4 +1,5 @@
 import logging
+import os
 import random
 import sys
 import torch
@@ -7,6 +8,7 @@ from tqdm import tqdm
 from torch.utils.data.sampler import SubsetRandomSampler
 from Mydataset import Mydataset
 from torch.utils.data import DataLoader
+import matplotlib.pyplot as plt
 
 def clf_m(predictions, labels, k=5.0):
     diff = torch.mean(torch.abs(predictions - labels))
@@ -32,11 +34,11 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, loss_function)
         sample_num += images.shape[0]
 
         pred = model(images.to(device))
-        accu_num += metric(pred, labels.to(device)).sum()
+        accu_num += metric(pred, labels.to(device)).sum().item()
 
         loss = loss_function(pred, labels.to(device))
         loss.backward()
-        accu_loss += loss.detach()
+        accu_loss += loss.item()
 
         data_loader.desc = "[train epoch {}] loss: {:.3f}, acc: {:.3f}".format(epoch,
                                                                                accu_loss.item() / (step + 1),
@@ -155,3 +157,48 @@ def getLogger(path):
     sh_handler.setFormatter(formatter)
     logger.addHandler(sh_handler)
     return logger
+
+
+def plt_res(path:str,train_losses:list, train_accuracys:list, eval_losses:list, eval_accuracys:list,learning_rates:list)->None:
+    """
+    plots the result of every experiment.
+    Args:
+        path: the way to store the result pictures location.
+        train_losses: the list contains all train_loss for this experiment.
+        train_accuracys: the list contains all  train_accuracys for this experiment.
+        eval_losses: the list contains all  eval_losses for this experiment.
+        eval_accuracys:  the list contains all eval_accuracys for this experiment.
+    """
+
+    epochs = range(1,len(train_losses) + 1)
+
+    plt.figure(figsize=(18, 6))
+    plt.subplot(1, 3, 1)
+    plt.plot(epochs, train_losses, 'bo-', label='Training Loss')
+    plt.plot(epochs, eval_losses, 'ro-', label='Validation Loss')
+    plt.title('Training and Validation Loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+
+    plt.subplot(1, 3, 2)
+    plt.plot(epochs, train_accuracys, 'bo-', label='Training Accuracy')
+    plt.plot(epochs, eval_accuracys, 'ro-', label='Validation Accuracy')
+    plt.title('Training and Validation Accuracy')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy')
+    plt.legend()
+
+    plt.subplot(1, 3, 3)
+    plt.plot(epochs, learning_rates, 'bo-', label='Learning Rate')
+    plt.title('Learning Rate Curve')
+    plt.xlabel('Epochs')
+    plt.ylabel('learning_rates')
+    plt.legend()
+
+    if not os.path.exists(path):
+        os.makedirs(path)
+    filename = "training_plot.png"
+    save_path = os.path.join(path,filename)
+    plt.tight_layout()
+    plt.savefig(save_path)
