@@ -14,6 +14,7 @@ from model.resnet import resnet34, resnet50
 from model.resnet_cbam import resnet34_cbam, resnet50_cbam,resnet18_cbam
 from model.convnext import convnext_tiny
 from model.shoenet import ShoeNet
+from model.vanillanet import vanillanet_6
 
 
 func_dict = {
@@ -28,7 +29,8 @@ model_dict = {
     'resnet18_cbam':resnet18_cbam(),
     'resnet34_cbam':resnet34_cbam(),
     'resnet50_cbam':resnet50_cbam(),
-    'convnext_tiny':convnext_tiny()
+    'convnext_tiny':convnext_tiny(),
+    'vanillanet': vanillanet_6(num_classes=1,deploy=True)
 }
 
 
@@ -48,11 +50,12 @@ class Config:
         return json.dumps(self.__dict__, indent=4)
 
 
-def eval_model(model, val_dataloader, device,loss_fn):
+def eval_model(model, val_dataloader, device,loss_fn,split_proption):
     model.eval()
     correct = 0
     eval_loss = 0
     eval_num_iter_per_epoch = len(val_dataloader)
+    val_datasets_len = len(val_dataloader.dataset) * split_proption
     for batch_index, (images, targets) in enumerate(val_dataloader):
         images = images.to(device)
         targets = targets.to(device)
@@ -63,7 +66,7 @@ def eval_model(model, val_dataloader, device,loss_fn):
         eval_loss += loss.item()
         correct += metric(targets,feature).sum().item()
 
-    accuracy = (correct / len(val_dataloader.dataset))
+    accuracy = (correct / val_datasets_len)
     eval_loss /= eval_num_iter_per_epoch
 
     return eval_loss, accuracy
@@ -81,10 +84,12 @@ def train(args):
                                      transforms.ToTensor(),
                                      transforms.Normalize([0.0635,0.0635,0.0635], [0.1691,0.1691,0.1691])])
     
-    data_path = os.path.join(os.path.dirname(os.getcwd()),"dataset/concate_testdata_inverse.npy")
+    data_path = os.path.join(os.path.dirname(os.getcwd()),"dataset/train_dataset.npy")
     datasets = Mydataset(data_path,transform=data_transform)
 
-    train_sampler, val_sampler = split_dataset(data_path)
+    # the proption of val_data occupies
+    split_proption = 0.2
+    train_sampler, val_sampler = split_dataset(data_path,split_proption)
 
     train_loader = torch.utils.data.DataLoader(datasets,
                                                batch_size=args.batch_size,
@@ -110,7 +115,7 @@ def train(args):
 
     # 指定优化器
     params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = optim.Adam(params, lr=0.0001, betas=(0.99,0.999),eps=1e-08,weight_decay=0.001)
+    optimizer = optim.Adam(params, lr=0.01, betas=(0.99,0.999),eps=1e-08,weight_decay=0.001)
 
     tb_writer = SummaryWriter(log_dir=f"./runs/{args.name}")
 
@@ -135,10 +140,11 @@ def train(args):
             optimizer.step()
             train_loss += loss.item()
 
-        train_acc = (train_correct / len(train_loader.dataset))
+        train_datasets_len = len(train_loader.dataset) * (1 - split_proption)
+        train_acc = (train_correct / train_datasets_len)
         train_loss /= train_num_iter_per_epoch
 
-        val_loss, val_acc = eval_model(model,eval_loader,device,loss_function)
+        val_loss, val_acc = eval_model(model,eval_loader,device,loss_function,split_proption)
 
         train_loss_list.append(train_loss)
         train_acc_list.append(train_acc)

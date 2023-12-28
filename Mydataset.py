@@ -12,7 +12,7 @@ class Mydataset(Dataset):
         self.data = np.load(self.data_path, allow_pickle=True, encoding="ASCII")
 
     def __getitem__(self, idx):
-        image, label = self.data[idx][3], self.data[idx][2]
+        image, label = self.data[idx][0], self.data[idx][1]
         img = Image.fromarray(image)
         label = torch.tensor(label).float()
         

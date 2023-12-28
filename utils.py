@@ -132,7 +132,8 @@ def split_dataset(data_path,split_proption=0.2,shuffle_or_not=True):
         np.random.seed(random_seed)
         np.random.shuffle(indices)
     train_indices, val_indices = indices[split:],indices[:split]
-
+    print(f"the length of train_datasets is {len(train_indices)} and the length of val_datasets is {len(val_indices)}")
+    
     train_sampler = SubsetRandomSampler(train_indices)
     val_sampler = SubsetRandomSampler(val_indices)
 
