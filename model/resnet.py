@@ -162,7 +162,9 @@ class ResNet(nn.Module):
             x = torch.flatten(x, 1)
             x = self.fc(x)
         return x
-
+    
+def resnet18(num_classes=1000, include_top=True):
+    return ResNet(BasicBlock, [2,2,2,2], num_classes=num_classes, include_top=include_top)
 
 def resnet34(num_classes=1000, include_top=True):
     # https://download.pytorch.org/models/resnet34-333f7ec4.pth

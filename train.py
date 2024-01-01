@@ -3,18 +3,17 @@ import logging
 import os
 import sys
 import torch
-from tqdm import tqdm
 import json
 from torch import nn,optim
 from torchvision import transforms
 from Mydataset import Mydataset
 from torch.utils.tensorboard import SummaryWriter
 from utils import split_dataset,setup_seed,getLogger,clf_m,metric,plt_res
-from model.resnet import resnet34, resnet50
+from model.resnet import resnet34, resnet50,resnet18
 from model.resnet_cbam import resnet34_cbam, resnet50_cbam,resnet18_cbam
-from model.convnext import convnext_tiny
+from model.convnext import convnext_tiny,convnext_small,convnext_base
 from model.shoenet import ShoeNet
-from model.vanillanet import vanillanet_6
+from model.convnext_cbam import convnext_tiny_cbam,convnext_small_cbam
 
 
 func_dict = {
@@ -24,13 +23,17 @@ func_dict = {
 }
 
 model_dict = {
+    'shoenet' :ShoeNet(),
     'resnet34':resnet34(),
     'resnet50':resnet50(),
     'resnet18_cbam':resnet18_cbam(),
     'resnet34_cbam':resnet34_cbam(),
     'resnet50_cbam':resnet50_cbam(),
-    'convnext_tiny':convnext_tiny(),
-    'vanillanet': vanillanet_6(num_classes=1,deploy=True)
+    'convnext_tiny':convnext_tiny(num_classes=1),
+    'convnext_small':convnext_small(num_classes=1),
+    'convnext_tiny_cbam':convnext_tiny_cbam(num_classes=1),
+    'convnext_small_cbam':convnext_small_cbam(num_classes=1),
+    'resnet18':resnet18()
 }
 
 
@@ -44,7 +47,7 @@ class Config:
         self.loss_fn = "clf_m"
 
     def get_path(self, path):
-        return f"logs/{self.model_name}_{path}"
+        return f"logs/train/{self.experiment_name}_{path}"
 
     def __repr__(self):
         return json.dumps(self.__dict__, indent=4)
@@ -115,7 +118,7 @@ def train(args):
 
     # 指定优化器
     params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = optim.Adam(params, lr=0.01, betas=(0.99,0.999),eps=1e-08,weight_decay=0.001)
+    optimizer = optim.Adam(params, lr=4e-4, betas=(0.99,0.999),eps=1e-08,weight_decay=0.001)
 
     tb_writer = SummaryWriter(log_dir=f"./runs/{args.name}")
 

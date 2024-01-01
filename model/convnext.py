@@ -95,6 +95,11 @@ class ConvNeXt(nn.Module):
 
         self.norm = nn.LayerNorm(dims[-1], eps=1e-6) # final norm layer
         self.head = nn.Linear(dims[-1], num_classes)
+        # self.head = nn.Sequential(
+        #     nn.Linear(dims[-1],384),
+        #     nn.ReLU(),
+        #     nn.Linear(384,1)
+        # )
 
         self.apply(self._init_weights)
         self.head.weight.data.mul_(head_init_scale)
@@ -200,3 +205,10 @@ def convnext_xlarge(pretrained=False, in_22k=False, **kwargs):
         checkpoint = torch.hub.load_state_dict_from_url(url=url, map_location="cpu")
         model.load_state_dict(checkpoint["model"])
     return model
+
+
+if __name__ == "__main__":
+    net = convnext_tiny(num_classes=1)
+    input = torch.randn(1,3,448,448)
+    output = net(input)
+    print(output.shape)

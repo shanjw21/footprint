@@ -13,12 +13,15 @@ from model.vanillanet import vanillanet_6
 if __name__ == "__main__":
     input_shape     = [224, 224]
     device = torch.device("cpu")
-    net = resnet34()
+    net_list = [resnet34(),ShoeNet(),resnet34_cbam(),resnet50(),resnet50_cbam()]
 
-    summary(net, (3, input_shape[0], input_shape[1]))
-    dummy_input = torch.randn(1,3,input_shape[0],input_shape[1]).to(device)
+    for net in net_list:
+        # summary(net, (3, input_shape[0], input_shape[1]))
+        print(f"--------------------------------")
+        dummy_input = torch.randn(1,3,input_shape[0],input_shape[1]).to(device)
 
-    flops, params = profile(net.to(device),(dummy_input,))
-    flops, params = clever_format([flops,params],"%.3f")
-    print('Total GFLOPS: %s' % (flops))
-    print('Total params: %s' % (params))
+        flops, params = profile(net.to(device),(dummy_input,))
+        flops, params = clever_format([flops,params],"%.3f")
+        print('Total GFLOPS: %s' % (flops))
+        print('Total params: %s' % (params))
+        print(f"--------------------------------")
